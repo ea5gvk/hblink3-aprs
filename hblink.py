@@ -36,8 +36,6 @@ from hmac import new as hmac_new, compare_digest
 from time import time
 from collections import deque
 import aprslib
-import os
-
 
 # Twisted is pretty important, so I keep it separate
 from twisted.internet.protocol import DatagramProtocol, Factory, Protocol
@@ -85,8 +83,8 @@ def config_reports(_config, _factory):
 
     reporting = task.LoopingCall(reporting_loop, logger, report_server)
     reporting.start(_config['REPORTS']['REPORT_INTERVAL'])
-    return report_server
 
+    return report_server
 
 
 # Shut ourselves down gracefully by disconnecting from the masters and peers.
@@ -109,7 +107,6 @@ def acl_check(_id, _acl):
 #    OPENBRIDGE CLASS
 #************************************************
 
-
 class OPENBRIDGE(DatagramProtocol):
     def __init__(self, _name, _config, _report):
         # Define a few shortcuts to make the rest of the class more readable
@@ -118,9 +115,7 @@ class OPENBRIDGE(DatagramProtocol):
         self._report = _report
         self._config = self._CONFIG['SYSTEMS'][self._system]
         self._laststrid = deque([], 20)
-    
-    
-    
+
     def dereg(self):
         logger.info('(%s) is mode OPENBRIDGE. No De-Registration required, continuing shutdown', self._system)
 
@@ -168,8 +163,8 @@ class OPENBRIDGE(DatagramProtocol):
                 _stream_id = _data[16:20]
                 #logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
 
-                # Sanity check for OpenBridge -- all calls must be on Slot 1
-                if _slot != 1:
+                # Sanity check for OpenBridge -- all calls must be on Slot 1 for Brandmeister or DMR+. Other HBlinks can process timeslot on OPB if the flag is set
+                if _slot != 1 and not self._config['BOTH_SLOTS'] and not _call_type == 'unit':
                     logger.error('(%s) OpenBridge packet discarded because it was not received on slot 1. SID: %s, TGID %s', self._system, int_id(_rf_src), int_id(_dst_id))
                     return
 
@@ -494,6 +489,7 @@ class HBSYSTEM(DatagramProtocol):
                         f.writelines(output)
                         f.close()
                     del self._peers[_peer_id]
+
             else:
                 _peer_id = _data[4:8]      # Configure Command
                 if _peer_id in self._peers \
@@ -520,9 +516,9 @@ class HBSYSTEM(DatagramProtocol):
 
                     self.send_peer(_peer_id, b''.join([RPTACK, _peer_id]))
                     logger.info('(%s) Peer %s (%s) has sent repeater configuration', self._system, _this_peer['CALLSIGN'], _this_peer['RADIO_ID'])
-            #APRS IMPLEMENTATION
+                    #APRS IMPLEMENTATION
                     conta = 0
-                    lista_blocco=['ysf', 'xlx', 'nxdn', 'dstar', 'echolink','p25', 'svx']
+                    lista_blocco=['ysf', 'xlx', 'nxdn', 'dstar', 'echolink','p25', 'svx', 'dvswitch']
                     if self._CONFIG['APRS']['ENABLED'] and not str(_this_peer['CALLSIGN'].decode('UTF-8')).replace(' ', '').isalpha() :
                         file = open("nom_aprs","r")
                         linee = file.readlines()
@@ -655,6 +651,18 @@ class HBSYSTEM(DatagramProtocol):
                     self.transport.write(b''.join([MSTNAK, _peer_id]), _sockaddr)
                     logger.warning('(%s) Ping from Radio ID that is not logged in: %s', self._system, int_id(_peer_id))
 
+        elif _command == RPTO:
+            _peer_id = _data[4:8]
+            if _peer_id in self._peers \
+                        and self._peers[_peer_id]['CONNECTION'] == 'YES' \
+                        and self._peers[_peer_id]['SOCKADDR'] == _sockaddr:
+                logger.info('(%s) Peer %s (%s) has send options: %s', self._system, self._peers[_peer_id]['CALLSIGN'], int_id(_peer_id), _data[8:])
+                self.transport.write(b''.join([RPTACK, _peer_id]), _sockaddr)
+
+        elif _command == DMRA:
+            _peer_id = _data[4:8]
+            logger.info('(%s) Recieved DMR Talker Alias from peer %s, subscriber %s', self._system, self._peers[_peer_id]['CALLSIGN'], int_id(_rf_src))
+
         else:
             logger.error('(%s) Unrecognized command. Raw HBP PDU: %s', self._system, ahex(_data))
 
@@ -784,6 +792,7 @@ class HBSYSTEM(DatagramProtocol):
                             self._stats['CONNECTION'] = 'YES'
                             self._stats['CONNECTED'] = time()
                             logger.info('(%s) Connection to Master Completed', self._system)
+
                             # If we are an XLX, send the XLX module request here.
                             if self._config['MODE'] == 'XLXPEER':
                                 self.send_xlxmaster(self._config['RADIO_ID'], int(4000), self._config['MASTER_SOCKADDR'])
@@ -904,8 +913,6 @@ if __name__ == '__main__':
     import sys
     import os
     import signal
-    import aprslib
-    import threading
 
     # Change the current directory to the location of the application
     os.chdir(os.path.dirname(os.path.realpath(sys.argv[0])))
@@ -927,12 +934,12 @@ if __name__ == '__main__':
     if cli_args.LOG_LEVEL:
         CONFIG['LOGGER']['LOG_LEVEL'] = cli_args.LOG_LEVEL
     logger = log.config_logging(CONFIG['LOGGER'])
-    logger.info('APRS IMPLEMENTATION BY IU7IGU email: iu7igu@yahoo.com \n\nCopyright (c) 2013, 2014, 2015, 2016, 2018, 2019\n\tThe Regents of the K0USY Group. All rights reserved.')
+    logger.info('\n\nCopyright (c) 2013, 2014, 2015, 2016, 2018, 2019, 2020\n\tThe Regents of the K0USY Group. All rights reserved.\n')
     logger.debug('(GLOBAL) Logging system started, anything from here on gets logged')
 
     # Set up the signal handler
     def sig_handler(_signal, _frame):
-        logger.info('(GLOBAL) SHUTDOWN: HBLINK IS TERMINATING WITH SIGNAL %s', str(_signal))           
+        logger.info('(GLOBAL) SHUTDOWN: HBLINK IS TERMINATING WITH SIGNAL %s', str(_signal))
         hblink_handler(_signal, _frame)
         logger.info('(GLOBAL) SHUTDOWN: ALL SYSTEM HANDLERS EXECUTED - STOPPING REACTOR')
         reactor.stop()
@@ -962,4 +969,3 @@ if __name__ == '__main__':
             logger.debug('(GLOBAL) %s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 
     reactor.run()
-
