@@ -9,7 +9,7 @@ RUN apt update && \
     rm -rf /var/lib/apt/lists/* && \
     cd /opt && \
     rm -rf /usr/src/dmr_utils3 && \
-    git clone https://github.com/iu7igu/hblink3-aprs
+    git clone https://github.com/n0mjs710/hblink3
 ENV AAA BBBB
 RUN cd /opt/hblink3/ && \
     sed -i s/.*python.*//g  requirements.txt && \

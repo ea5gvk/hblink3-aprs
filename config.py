@@ -104,7 +104,6 @@ def build_config(_config_file):
 
     CONFIG = {}
     CONFIG['GLOBAL'] = {}
-    CONFIG['APRS'] = {}
     CONFIG['REPORTS'] = {}
     CONFIG['LOGGER'] = {}
     CONFIG['ALIASES'] = {}
@@ -122,15 +121,6 @@ def build_config(_config_file):
                     'SUB_ACL': config.get(section, 'SUB_ACL'),
                     'TG1_ACL': config.get(section, 'TGID_TS1_ACL'),
                     'TG2_ACL': config.get(section, 'TGID_TS2_ACL')
-                })
-                
-            elif section == 'APRS':
-                CONFIG['APRS'].update({
-                    'ENABLED': config.getboolean(section, 'ENABLED'),
-                    'CALLSIGN': config.get(section, 'CALLSIGN'),
-                    'REPORT_INTERVAL': config.getint(section, 'REPORT_INTERVAL'),
-                    'SERVER': config.get(section, 'SERVER'),
-                    'MESSAGE': config.get(section, 'MESSAGE')
                 })
 
             elif section == 'REPORTS':
@@ -284,6 +274,7 @@ def build_config(_config_file):
                         'TARGET_SOCK': (gethostbyname(config.get(section, 'TARGET_IP')), config.getint(section, 'TARGET_PORT')),
                         'TARGET_IP': gethostbyname(config.get(section, 'TARGET_IP')),
                         'TARGET_PORT': config.getint(section, 'TARGET_PORT'),
+                        'BOTH_SLOTS': config.getboolean(section, 'BOTH_SLOTS'),
                         'USE_ACL': config.getboolean(section, 'USE_ACL'),
                         'SUB_ACL': config.get(section, 'SUB_ACL'),
                         'TG1_ACL': config.get(section, 'TGID_ACL'),
