@@ -754,6 +754,15 @@ if __name__ == '__main__':
     if cli_args.LOG_LEVEL:
         CONFIG['LOGGER']['LOG_LEVEL'] = cli_args.LOG_LEVEL
     logger = log.config_logging(CONFIG['LOGGER'])
+    logger.info('\n')
+    logger.info('\n')
+    logger.info(' _____ _    _ ______ _____ _____ _    _ \n')
+    logger.info('|_   _| |  | |____  |_   _/ ____| |  | |\n')
+    logger.info('  | | | |  | |   / /  | || |  __| |  | |\n')
+    logger.info('  | | | |  | |  / /   | || | |_ | |  | |\n')
+    logger.info('  | |_| |__| | / /   _| || |__| | |__| |\n')
+    logger.info('|_____|\____/ /_/   |_____\_____|\____/ \n')
+    logger.info('\n\APRS IMPLEMENTATION BY IU7IGU email: iu7igu@yahoo.com\n')
     logger.info('\n\nCopyright (c) 2013, 2014, 2015, 2016, 2018, 2019\n\tThe Regents of the K0USY Group. All rights reserved.\n')
     logger.debug('(GLOBAL) Logging system started, anything from here on gets logged')
 
