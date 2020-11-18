@@ -219,7 +219,6 @@ def stream_trimmer_loop():
                     logger.error('(%s) Attemped to remove OpenBridge Stream ID %s not in the Stream ID list: %s', system, int_id(stream_id), [id for id in systems[system].STATUS])
 
 class routerOBP(OPENBRIDGE):
-
     def __init__(self, _name, _config, _report):
         OPENBRIDGE.__init__(self, _name, _config, _report)
         self.name = _name
@@ -232,7 +231,7 @@ class routerOBP(OPENBRIDGE):
         pkt_time = time()
         dmrpkt = _data[20:53]
         _bits = _data[15]
-        
+       
         # Is this a new call stream?
         if (_stream_id not in self.STATUS):
             # This is a new call stream
@@ -254,7 +253,6 @@ class routerOBP(OPENBRIDGE):
             # just make a new one from the HBP header. This is good enough, and it saves lots of time
             else:
                 self.STATUS[_stream_id]['LC'] = LC_OPT + _dst_id + _rf_src
-
 
             logger.info('(%s) *GROUP CALL START* OBP STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s', \
                     self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
@@ -651,6 +649,7 @@ class routerHBP(HBSYSTEM):
 
     def group_received(self, _peer_id, _rf_src, _dst_id, _seq, _slot, _frame_type, _dtype_vseq, _stream_id, _data):
         global UNIT_MAP
+        global bla
         pkt_time = time()
         dmrpkt = _data[20:53]
         _bits = _data[15]
@@ -666,14 +665,15 @@ class routerHBP(HBSYSTEM):
 
             # This is a new call stream
             self.STATUS[_slot]['RX_START'] = pkt_time
-            logger.info('(%s) *GROUP CALL START* STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s', \
+            logger.info(str(_data))
+            logger.info('(%s) *GROUP CALLA START* STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s', \
                     self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
             if CONFIG['REPORTS']['REPORT']:
                 self._report.send_bridgeEvent('GROUP VOICE,START,RX,{},{},{},{},{},{}'.format(self._system, int_id(_stream_id), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_dst_id)).encode(encoding='utf-8', errors='ignore'))
 
             # If we can, use the LC from the voice header as to keep all options intact
             if _frame_type == HBPF_DATA_SYNC and _dtype_vseq == HBPF_SLT_VHEAD:
-                decoded = decode.voice_head_term(dmrpkt)
+                decoded = decode.voice_head_term(_data)
                 self.STATUS[_slot]['RX_LC'] = decoded['LC']
 
             # If we don't have a voice header then don't wait to decode it from the Embedded LC
